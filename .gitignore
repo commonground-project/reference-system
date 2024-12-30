@@ -4,12 +4,3 @@
 venv/
 ENV/
 
-
-# 你原本的特定筆記本文件（如果你真的只想忽略這些特定文件）
-langchain_example.ipynb
-langchain.ipynb
-langGraph.ipynb
-llamaindex.ipynb
-recursiveTextsplitterDemo.ipynb
-redundant.ipynb
-text_request.ipynb
