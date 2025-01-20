@@ -33,7 +33,7 @@ def get_project_paths() -> Tuple[str, str]:
 
 def load_json_data(project_root: str) -> Dict[str, Any]:
     """Load JSON data from file."""
-    json_file_path: str = os.path.join(project_root, 'data', 'example-api-data.json')
+    json_file_path: str = os.path.join(project_root, 'data', 'example_api_data.json')
     with open(json_file_path, 'r', encoding='utf-8') as file:
         return json.load(file)
 
@@ -247,7 +247,7 @@ def main() -> None:
     model_input_string = create_model_input_string(model_input_json)
     
     # Load few-shot example
-    file_path: str = os.path.join(project_root, 'data', 'few-shot-example.txt')
+    file_path: str = os.path.join(project_root, 'data', 'few_shot_example.txt')
     with open(file_path, 'r', encoding="utf-8") as file:
         few_shot_example: str = file.read()
     
