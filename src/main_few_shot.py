@@ -62,8 +62,7 @@ class NewsGenerator:
     def create_prompt_template(self) -> ChatPromptTemplate:
         """Create the chat prompt template."""
         return ChatPromptTemplate([
-            ("system", '''
-您是一位經驗豐富的新聞記者，負責根據引用的事實資訊撰寫客觀的新聞文章。您的職責是：
+            ("system", '''您是一位經驗豐富的新聞記者，負責根據引用的事實資訊撰寫客觀的新聞文章。您的職責是：
 1. 使用引用的事實撰寫全面的新聞報導
 2. 運用新聞寫作技巧自然地連接資訊（何人、何事、何時、何地、為何、如何）
 3. 保持嚴格的事實準確性 - 不推測或添加超出引述範圍的細節
