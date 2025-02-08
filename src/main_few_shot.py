@@ -2,16 +2,17 @@ from typing import Dict, List, Any, Tuple
 import json
 import os
 import re
+import requests
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-
+from utils import api_func
 class NewsGenerator:
-    def __init__(self):
+    def __init__(self, issue_id: str) -> None:
         self.original_id_to_new_id: Dict[str, str] = {}
         self.new_id_to_original_id: Dict[str, str] = {}
         self.current_dir, self.project_root = self._get_project_paths()
-        self.data = self._load_json_data()
+        self.data = self._load_viewspoints_from_issue_id(issue_id)
         self._initialize_llm()
 
     def _get_project_paths(self) -> Tuple[str, str]:
@@ -21,11 +22,10 @@ class NewsGenerator:
         project_root: str = os.path.join(current_dir, os.pardir)
         return current_dir, project_root
 
-    def _load_json_data(self) -> Dict[str, List]:
-        """Load JSON data from file."""
-        json_file_path: str = os.path.join(self.current_dir, 'data', 'example_api_data.json')
-        with open(json_file_path, 'r', encoding='utf-8') as file:
-            return json.load(file)
+    def _load_viewspoints_from_issue_id(self, issue_id) -> Dict[str, List]:
+        """Load JSON data from API."""
+        # 獲得在某個議題底下的所有 viewpoints
+        return api_func.load_viewspoints_from_issue_id(issue_id)
 
     def _initialize_llm(self) -> None:
         """Initialize the language model and load environment variables."""
@@ -43,14 +43,14 @@ class NewsGenerator:
         """Format data for model input."""
         result: str = ""
         now_id: int = 1
-        
         for comment in self.data["content"]:
             fact_num: int = 1
             for fact in comment["facts"]:
                 result += f"事實{fact_num}:\n\n"
                 for reference in fact["references"]:
                     if reference["id"] not in self.original_id_to_new_id:
-                        text: str = f"{reference['title']}。{reference['description']}"
+                        # TODO {reference['description']} 在後端 api 更新後新增 
+                        text: str = f"{reference['title']}。"
                         result += f"參考資料:\n{text}[{now_id}]\n\n"
                         self.original_id_to_new_id[reference["id"]] = str(now_id)
                         self.new_id_to_original_id[str(now_id)] = reference["id"]
@@ -118,15 +118,21 @@ class NewsGenerator:
 
 def main():
     """Main function to run the news generation process."""
-    try:
-        news_generator = NewsGenerator()
+    # 先取得 issue 的所有 id
+
+    all_issue_ids = api_func.get_all_issue_ids()
+    for issue_id in all_issue_ids:
+        news_generator = NewsGenerator(issue_id)
+        
         result = news_generator.generate_news()
+        result["Issue_id"] = issue_id
         print("Generated News Article:")
         print(result["Summary"])
         print("\nCitations:")
         print(result["Citations"])
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        print("\n")
+        print("Issue_id: ", result["Issue_id"])
+
 
 if __name__ == "__main__":
     main()
