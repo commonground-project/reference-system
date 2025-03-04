@@ -6,10 +6,11 @@ class DataProcessor:
         self.original_id_to_new_id = {}
         self.new_id_to_original_id = {}
         
-    def format_html_metadata(self) -> str:
+    def format_html_metadata(self,issue_title) -> str:
         """Format data for model input."""
         result: str = ""
         now_id: int = 1
+        result += f"議題標題:{issue_title}\n\n"
         for comment in self.viewspoints["content"]:
             fact_num: int = 1
             for fact in comment["facts"]:

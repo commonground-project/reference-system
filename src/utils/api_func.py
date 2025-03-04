@@ -1,14 +1,14 @@
 import os
 import json
 import requests
-
+now_phase="stage"
 def nums_of_total_pages():
     params = {
         'sort': 'createdAt;asc',
         'page': 0,
         'size': 200
     }
-    response = requests.get('https://dev.api.commonground.tw/api/issues', params=params)
+    response = requests.get(f'https://{now_phase}.api.commonground.tw/api/issues', params=params)
     return response.json()['page']['totalPage']
 
 def get_all_issue_ids():
@@ -20,7 +20,7 @@ def get_all_issue_ids():
             'page': i,
             'size': 200
         }
-        response = requests.get('https://dev.api.commonground.tw/api/issues', params=params)
+        response = requests.get(f'https://{now_phase}.api.commonground.tw/api/issues', params=params)
         for issue in response.json()['content']:
             all_issue_ids.append(issue['id'])
     return all_issue_ids
@@ -35,7 +35,7 @@ def get_all_issue():
             'page': i,
             'size': 200
         }
-        response = requests.get('https://dev.api.commonground.tw/api/issues', params=params)
+        response = requests.get(f'https://{now_phase}.api.commonground.tw/api/issues', params=params)
         for issue in response.json()['content']:
             all_issue.append(issue)
     return all_issue
@@ -46,7 +46,7 @@ def load_viewspoints_from_issue_id(issue_id):
         'size': 200,
         'page': 0
     }
-    url = f"https://dev.api.commonground.tw/api/issue/{issue_id}/viewpoints"
+    url = f"https://{now_phase}.api.commonground.tw/api/issue/{issue_id}/viewpoints"
     response = requests.get(url, params=params)
     totalPage = response.json()['page']['totalPage']
     contents = {}
@@ -62,7 +62,7 @@ def put_reference_result_to_platform(issue_id, result, title, jwt_token):
     """
     Update issue with generated insights and facts
     """
-    url = f"https://dev.api.commonground.tw/api/issue/{issue_id}"
+    url = f"https://{now_phase}.api.commonground.tw/api/issue/{issue_id}"
 
     headers = {
         'Authorization': f'Bearer {jwt_token}',

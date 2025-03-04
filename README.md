@@ -12,6 +12,10 @@ A Python-based reference system project.
 pip install -r requirements.txt
 ```
 
-## Usage
 
+## How to Use the Reference System Docker Image
+
+### Step 1: Pull the Docker image
+```bash
+docker pull leepokai/reference-system:latest
 

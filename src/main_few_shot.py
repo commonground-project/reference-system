@@ -49,7 +49,7 @@ class IssueNewsGenerator:
     def get_input_data(self) -> str:
         """Format data for model input."""
         processor = DataProcessor(self.viewspoints)
-        self.formatted_data = processor.format_html_metadata()
+        self.formatted_data = processor.format_html_metadata(self.title)
         self.original_id_to_new_id = processor.original_id_to_new_id
         self.new_id_to_original_id = processor.new_id_to_original_id
         return self.formatted_data
@@ -58,7 +58,7 @@ class IssueNewsGenerator:
         """Generate news article and process the output."""
         model_input_string = self.get_input_data()
         few_shot_example = self._load_few_shot_example()
-        
+        # print("Model input string:", model_input_string)
         template = prompt_template.create_prompt_template()
         chain = template | self.llm
         
@@ -79,8 +79,8 @@ class IssueNewsGenerator:
             "Citations": {
                 str(citation): self.new_id_to_original_id[str(citation)]
                 for citation in sorted(set(
-                    map(int, re.findall(r'\((\d+)\)', result_content) +
-                        re.findall(r'\(U(\d+)\)', result_content))
+                    map(int, re.findall(r'\[(\d+)\]', result_content) +
+                        re.findall(r'\[U(\d+)\]', result_content))
                 ))
             }
         }
@@ -90,19 +90,30 @@ class IssueNewsGenerator:
 def main():
     """Main function to run the news generation process."""
     # 先取得 issue 的所有 id
-
     # all_issue_ids = api_func.get_all_issue_ids()
     all_issue = api_func.get_all_issue()
+    results = []
     for issue in all_issue:
         news_generator = IssueNewsGenerator(issue)
         news_generator.generate_news()
-        print("Generated News Article:")
-        print(news_generator.result["Summary"])
-        print("\n")
-        print("Citations:", news_generator.result["Citations"])
-        print("\n")
-        print("Issue_id: ", news_generator.issue_id)
+        # Create result object in desired format
+        result = {
+            "issue_id": news_generator.issue_id,
+            "summary": news_generator.result["Summary"],
+            "citation": news_generator.result["Citations"]
+        }
+        
+        results.append(result)
+        
+        # Optional: Keep existing console output
+        print(f"Processed issue: {news_generator.issue_id}")
+        print(result)
+        # Optional: Keep API submission
         news_generator._put_refence_result_to_platform()
+    # Write results to output file
+    with open('./src/output/results.json', 'w', encoding='utf-8') as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    
 
 
 if __name__ == "__main__":
