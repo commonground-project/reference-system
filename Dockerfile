@@ -1,18 +1,35 @@
-FROM python:3.10.11-slim
+FROM python:3.10-slim
 
+# Set working directory
 WORKDIR /app
 
-RUN pip install poetry
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
-RUN poetry config virtualenvs.create false
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml poetry.lock ./
+# Copy requirements files
+COPY requirements.txt /app/
+COPY poetry.lock poetry.toml pyproject.toml /app/
 
-RUN poetry install --no-root --no-interaction --no-ansi
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-COPY src/main_few_shot.py src/
-COPY src/utils src/utils
-COPY config/.env config/
-COPY data/few_shot_example.txt data/
+# Install web-search-agent package
+RUN pip install --no-cache-dir web-search-agent
 
-CMD ["python", "src/main_few_shot.py"]
+# Copy application code
+COPY . /app/
+
+# Create output directory if it doesn't exist
+RUN mkdir -p /app/src/output
+
+# Set entrypoint
+ENTRYPOINT ["python", "-m", "src.main"]
