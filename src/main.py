@@ -46,29 +46,44 @@ async def process_issue(
 
     # Generate initial summary
     summary_generator = SummaryGenerator(llm)
-
+    # Connect the summary generator with the data processor
+    summary_generator.set_data_processor(processor)
     summary_generator.set_id_mappings(
         processor.new_id_to_original_id, processor.original_id_to_new_id
     )
 
+    # Generate initial summary from user data
     initial_summary = await summary_generator.generate_summary(formatted_data)
 
     # Use web search agent to enrich the summary with additional context
+    search_config = WebSearchConfig(
+        planner_model="gpt-4o",
+        initial_queries_count=3,
+        max_sections=5,
+        must_cover_section_title="請針對此議題提供以下幾個面向的資訊：主要涉及方、不同立場觀點、關鍵數據與事實",
+    )
+    search_agent = WebSearchAgent(config=search_config)
+
     search_results = await search_agent.search(
         issue_title, additional_info=initial_summary["content"]
     )
 
+    print(f"[INFO] Web search completed with {len(search_results.sections)} sections")
+
     # Combine the initial summary with search results
-    final_summary = await summary_generator.combine_with_search_results(
+    final_insight = await summary_generator.combine_with_search_results(
         initial_summary["content"], search_results
     )
+
+    # Get final list of facts in ordered citation format
+    facts_list = processor.get_facts_list()
 
     # Create final result
     result = {
         "issue_id": issue_id,
         "title": issue_title,
-        "summary": final_summary,
-        "citations": initial_summary["citations"],
+        "insight": final_insight,
+        "facts": facts_list,
     }
 
     return result
@@ -83,15 +98,7 @@ async def main() -> None:
     client = APIClient(phase=os.getenv("API_PHASE", "stage"))
 
     # Initialize language model
-    llm = ChatOpenAI(model="gpt-4o-mini")
-
-    # Initialize web search agent with custom configuration
-    search_config = WebSearchConfig(
-        planner_model="gpt-4o",
-        initial_queries_count=2,
-        max_sections=3,
-    )
-    search_agent = WebSearchAgent(config=search_config)
+    llm = ChatOpenAI(model="gpt-4o")
 
     # Get all issues
     all_issues = client.get_all_issues()
@@ -99,26 +106,43 @@ async def main() -> None:
     # Process each issue
     results = []
     for i, issue in enumerate(all_issues):
+        # needed to be commented
+        if i == 2:
+            break
         print(
             f"\n[INFO] === Processing issue {i+1}/{len(all_issues)}: {issue.get('title', 'No title')} ==="
         )
 
-        result = await process_issue(
-            issue["id"], issue["title"], client, llm, search_agent
-        )
-        results.append(result)
-
-        # Optional: Output progress
-        print(f"Processed issue: {issue['id']}")
-
-        # Optional: Send results back to platform
-        if os.getenv("JWT_TOKEN"):
-            client.put_reference_result_to_platform(
-                issue["id"],
-                {"Summary": result["summary"], "Citations": result["citations"]},
-                issue["title"],
-                os.getenv("JWT_TOKEN"),
+        try:
+            # Create a new WebSearchAgent for each issue to avoid state conflicts
+            search_agent = WebSearchAgent(
+                config=WebSearchConfig(
+                    planner_model="gpt-4o",
+                    initial_queries_count=3,
+                    max_sections=5,
+                    must_cover_section_title="請針對此議題提供以下幾個面向的資訊：主要涉及方、不同立場觀點、關鍵數據與事實",
+                )
             )
+
+            result = await process_issue(
+                issue["id"], issue["title"], client, llm, search_agent
+            )
+            results.append(result)
+
+            # Send results back to platform
+            if os.getenv("JWT_TOKEN"):
+                response = client.put_reference_result_to_platform(
+                    issue["id"],
+                    result["insight"],
+                    issue["title"],
+                    result["facts"],
+                    os.getenv("JWT_TOKEN"),
+                )
+                print(f"[INFO] API update response: {response}")
+
+        except Exception as e:
+            print(f"[ERROR] Error processing issue {issue['id']}: {str(e)}")
+            continue
 
     # Format results to match expected output structure
     output_data = {"results": results}

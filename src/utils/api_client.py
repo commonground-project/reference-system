@@ -81,15 +81,21 @@ class APIClient:
         return contents
 
     def put_reference_result_to_platform(
-        self, issue_id: str, result: Dict[str, Any], title: str, jwt_token: str
+        self,
+        issue_id: str,
+        insight_text: str,
+        title: str,
+        facts_list: List[str],
+        jwt_token: str,
     ) -> Dict:
         """
         Update issue with generated insights and facts.
 
         Args:
             issue_id: The ID of the issue to update
-            result: The generated results
+            insight_text: The generated insight text with citations in (num) format
             title: The title of the issue
+            facts_list: List of fact IDs referenced in order
             jwt_token: JWT token for authentication
 
         Returns:
@@ -102,18 +108,45 @@ class APIClient:
             "Content-Type": "application/json",
         }
 
-        facts_list = []
-        for fact in result["Citations"]:
-            facts_list.append(result["Citations"][fact])
+        # Prepare the request payload according to API requirements
+        payload = {"title": title, "insight": insight_text, "facts": facts_list}
 
-        payload = {
-            "title": title,
-            "description": "description",
-            "insight": result["Summary"],
-            "facts": facts_list,
-        }
+        print(f"[INFO] Sending payload to API: {payload}")
 
         response = requests.put(url, json=payload, headers=headers)
-        print(response.json())
+        print(f"[INFO] API Response: {response.status_code}")
 
+        if response.status_code >= 400:
+            print(f"[ERROR] API response error: {response.text}")
+            return {"error": response.text}
+
+        return response.json()
+
+    def create_fact(self, fact_data: Dict[str, Any], jwt_token: str) -> Dict:
+        """
+        Create a new fact with references.
+
+        Args:
+            fact_data: Dictionary with title and references list
+            jwt_token: JWT token for authentication
+
+        Returns:
+            The created fact data with ID
+        """
+        url = f"{self.base_url}/facts"
+
+        headers = {
+            "Authorization": f"Bearer {jwt_token}",
+            "Content-Type": "application/json",
+        }
+
+        print(f"[INFO] Creating fact: {fact_data}")
+
+        response = requests.post(url, json=fact_data, headers=headers)
+
+        if response.status_code >= 400:
+            print(f"[ERROR] Failed to create fact: {response.text}")
+            return {"error": response.text}
+
+        print(f"[INFO] Fact created successfully: {response.status_code}")
         return response.json()

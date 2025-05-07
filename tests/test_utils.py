@@ -2,8 +2,6 @@
 Unit tests for the reference system.
 """
 
-import json
-import os
 import unittest
 from unittest.mock import MagicMock, patch
 
