@@ -175,3 +175,5 @@ docker_output
 
 docker-compose.yml
 ci-cd.yml
+
+docs

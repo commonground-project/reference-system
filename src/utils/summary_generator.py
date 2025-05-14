@@ -118,13 +118,8 @@ class SummaryGenerator:
         print("\nFormatted Search Sections XML:")
         print(sections_xml)
 
-        # Print the full prompt that will be sent to the LLM
-        prompt_with_values = template.format(**input_params)
         print("\n===== FULL FORMATTED PROMPT =====")
-        for message in prompt_with_values.messages:
-            print(f"\n--- {message.type.upper()} MESSAGE ---")
-            print(message.content)
-        print("\n===== END OF DEBUG OUTPUT =====\n")
+        print(template.format(**input_params))
 
         chain = template | self.llm
 

@@ -37,7 +37,7 @@ reference-system/
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- Python 3.11.11 or higher
 - OpenAI API key
 - `web-search-agent` package
 
@@ -56,10 +56,10 @@ reference-system/
 
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+poetry install
 
 # Run the application
-python -m src.main
+python src/main.py
 ```
 
 #### Docker Deployment

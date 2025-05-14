@@ -109,7 +109,12 @@ class APIClient:
         }
 
         # Prepare the request payload according to API requirements
-        payload = {"title": title, "insight": insight_text, "facts": facts_list}
+        payload = {
+            "title": title,
+            "insight": insight_text,
+            "facts": facts_list,
+            "description": f" {title}'s description",
+        }
 
         print(f"[INFO] Sending payload to API: {payload}")
 
