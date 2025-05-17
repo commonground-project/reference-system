@@ -75,6 +75,10 @@ async def process_issue(
         initial_summary["content"], search_results
     )
 
+    # 從 final_insight 移除 <article> 和 </article> 標籤以獲得純文本內容
+    if final_insight.startswith("<article>") and final_insight.endswith("</article>"):
+        final_insight = final_insight[9:-10]  # 去掉首尾的 <article> 和 </article>
+
     # Get final list of facts in ordered citation format
     facts_list = processor.get_facts_list()
 

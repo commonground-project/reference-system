@@ -18,7 +18,7 @@ class APIClient:
             phase: The deployment phase to use (default: 'stage')
         """
         self.phase = phase
-        self.base_url = f"https://{self.phase}.api.commonground.tw/api"
+        self.base_url = f"{self.phase}"
 
     def get_number_of_total_pages(self) -> int:
         """Get the total number of pages of issues."""
@@ -149,6 +149,16 @@ class APIClient:
         print(f"[DEBUG] Request URL: {url}")
         print(f"[DEBUG] Request Headers: {headers}")
         print(f"[DEBUG] Request Payload: {fact_data}")
+
+        print("\n===== FACT PAYLOAD DETAILS =====")
+        print(f"Payload type: {type(fact_data)}")
+        if "title" in fact_data:
+            print(f"Title: {fact_data['title']}")
+        if "references" in fact_data:
+            print(f"References count: {len(fact_data['references'])}")
+            for i, ref in enumerate(fact_data["references"]):
+                print(f"  Reference {i+1}: {ref}")
+        print("================================\n")
 
         response = requests.post(url, json=fact_data, headers=headers)
 
