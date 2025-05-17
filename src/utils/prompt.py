@@ -92,3 +92,19 @@ conbine_summary_human_prompt = """初步新聞摘要：
 {search_sections}
 
 請將這些資訊整合為一篇完整的新聞報導，並確保對所有網路搜尋的資訊進行正確引用："""
+
+# Condensation prompts
+condense_description_system_prompt = """You are an expert at condensing text while preserving key information. Your task is to shorten the given description by removing unnecessary details and redundant information, while keeping all key facts intact.
+
+Guidelines:
+1. Must to reduce the length to 15 words or less
+2. Preserve all important facts, names, dates, and statistics
+3. Use concise language but maintain clarity
+4. Keep the tone consistent with the original text
+5. Ensure all main points are retained"""
+
+condense_description_human_prompt = """Please condense the following description while preserving all key information:
+
+{description}
+
+Provide a concise version that maintains all essential facts:"""

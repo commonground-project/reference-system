@@ -101,7 +101,7 @@ class APIClient:
         Returns:
             The response from the API
         """
-        url = f"{self.base_url}/issue/{issue_id}"
+        url = f"{self.base_url}/internal/issues/{issue_id}/insight"
 
         headers = {
             "Authorization": f"Bearer {jwt_token}",
@@ -110,10 +110,10 @@ class APIClient:
 
         # Prepare the request payload according to API requirements
         payload = {
-            "title": title,
+            # "title": title,
             "insight": insight_text,
             "facts": facts_list,
-            "description": f" {title}'s description",
+            # "description": f" {title}'s description",
         }
 
         print(f"[INFO] Sending payload to API: {payload}")
@@ -138,7 +138,7 @@ class APIClient:
         Returns:
             The created fact data with ID
         """
-        url = f"{self.base_url}/facts"
+        url = f"{self.base_url}/internal/facts"
 
         headers = {
             "Authorization": f"Bearer {jwt_token}",
@@ -146,8 +146,15 @@ class APIClient:
         }
 
         print(f"[INFO] Creating fact: {fact_data}")
+        print(f"[DEBUG] Request URL: {url}")
+        print(f"[DEBUG] Request Headers: {headers}")
+        print(f"[DEBUG] Request Payload: {fact_data}")
 
         response = requests.post(url, json=fact_data, headers=headers)
+
+        print(f"[DEBUG] Response Status Code: {response.status_code}")
+        print(f"[DEBUG] Response Headers: {response.headers}")
+        print(f"[DEBUG] Response Body: {response.text}")
 
         if response.status_code >= 400:
             print(f"[ERROR] Failed to create fact: {response.text}")
@@ -155,3 +162,109 @@ class APIClient:
 
         print(f"[INFO] Fact created successfully: {response.status_code}")
         return response.json()
+
+    def create_reference(self, url_to_create: str, jwt_token: str) -> Dict:
+        """
+        Create a new reference without associating it with a fact.
+
+        Args:
+            url_to_create: The URL to create a reference for
+            jwt_token: JWT token for authentication
+
+        Returns:
+            The created reference data if successful, or error information with status code
+        """
+        api_url = f"{self.base_url}/references"
+
+        headers = {
+            "Authorization": f"Bearer {jwt_token}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {"url": url_to_create}
+
+        print(f"[INFO] Creating reference for URL: {url_to_create}")
+
+        response = requests.post(api_url, json=payload, headers=headers)
+
+        result = {}
+        result["status_code"] = response.status_code
+
+        if response.status_code >= 400:
+            print(f"[ERROR] Failed to create reference: {response.text}")
+            result["error"] = response.text
+            return result
+
+        print(f"[INFO] Reference created successfully: {response.status_code}")
+        result.update(response.json())
+        return result
+
+    def check_website(self, url_to_check: str) -> Dict:
+        """
+        Check website title and icon using the public API.
+
+        Args:
+            url_to_check: The URL to check
+
+        Returns:
+            Dict with 'title' and 'icon' if successful, or error info
+        """
+        api_url = f"{self.base_url}/website/check"
+        params = {"url": url_to_check}
+        response = requests.get(api_url, params=params)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": response.json(), "status_code": response.status_code}
+
+    def create_fact_with_url_validation(
+        self, fact_title: str, references: List[Dict[str, str]], jwt_token: str
+    ) -> Dict:
+        """
+        Create a new fact with references, but first validate all URLs.
+
+        This method will:
+        1. Try to check each URL using the public API
+        2. Collect only successfully checked URLs
+        3. Create a fact using only the successful references
+
+        Args:
+            fact_title: Title for the fact
+            references: List of reference dictionaries containing URLs
+            jwt_token: JWT token for authentication
+
+        Returns:
+            The created fact data with ID if successful, or error information
+        """
+        print(
+            f"[INFO] Attempting to create fact '{fact_title}' with {len(references)} URLs"
+        )
+
+        successful_references = []
+        for reference in references:
+            url = reference.get("url", "")
+            if not url:
+                print(f"[WARNING] Skipping reference with no URL: {reference}")
+                continue
+
+            check_result = self.check_website(url)
+
+            if "error" not in check_result:
+                print(f"[INFO] Website check passed for URL: {url}")
+                successful_references.append({"url": url})
+            else:
+                print(
+                    f"[WARNING] URL failed website check: {url}, Status: {check_result.get('status_code')}"
+                )
+
+        if not successful_references:
+            print("[ERROR] No URLs could be successfully validated")
+            return {"error": "All URLs failed validation"}
+
+        print(
+            f"[INFO] Successfully validated {len(successful_references)} out of {len(references)} URLs"
+        )
+
+        fact_data = {"title": fact_title, "references": successful_references}
+
+        return self.create_fact(fact_data, jwt_token)

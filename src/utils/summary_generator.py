@@ -207,7 +207,10 @@ class SummaryGenerator:
                 continue
 
             # Create a new fact from this section via API and get the fact ID
-            fact_id = self._create_fact_from_section(fact_description, urls)
+            condensed_description = self.condense_description(fact_description)
+            print(f"[DEBUG] Condensed description: {condensed_description}")
+            # Create the fact using the API
+            fact_id = self._create_fact_from_section(condensed_description, urls)
 
             if fact_id:
                 print(f"[DEBUG] Successfully created fact with ID {fact_id}")
@@ -266,10 +269,12 @@ class SummaryGenerator:
                 references.append({"url": url_info["url"]})
 
             # Create the fact
-            fact_payload = {"title": description, "references": references}
+            fact_payload = {"fact_title": description, "references": references}
 
             # Call the API to create the fact
-            response = client.create_fact(fact_payload, jwt_token)
+            response = client.create_fact_with_url_validation(
+                **fact_payload, jwt_token=jwt_token
+            )
 
             # Return the fact ID
             if response and "id" in response:
@@ -311,6 +316,46 @@ class SummaryGenerator:
                 ("human", conbine_summary_human_prompt),
             ]
         )
+
+    def condense_description(self, description: str) -> str:
+        """
+        Condense a long description to a shorter version using LLM.
+
+        Args:
+            description: The long description text to condense
+
+        Returns:
+            A condensed version of the description
+        """
+        # Import the prompts
+        from .prompt import (
+            condense_description_human_prompt,
+            condense_description_system_prompt,
+        )
+
+        # Skip condensation if description is already short (less than 150 chars)
+        if len(description) < 15:
+            return description
+
+        template = ChatPromptTemplate.from_messages(
+            [
+                ("system", condense_description_system_prompt),
+                ("human", condense_description_human_prompt),
+            ]
+        )
+
+        chain = template | self.llm
+
+        try:
+            print(f"[INFO] Condensing description of {len(description)} characters")
+            result = chain.invoke({"description": description})
+            condensed = result.content.strip()
+            print(f"[INFO] Condensed to {len(condensed)} characters")
+            return condensed
+        except Exception as e:
+            print(f"[ERROR] Failed to condense description: {e}")
+            # Return original if condensation fails
+            return description
 
     def _extract_facts(self, content: str) -> Dict[str, str]:
         """
